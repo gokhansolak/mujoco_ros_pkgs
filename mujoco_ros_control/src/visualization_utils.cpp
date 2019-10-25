@@ -443,12 +443,12 @@ void MujocoVisualizationUtils::mouse_button_cb_implementation(GLFWwindow* window
 
         // find geom and 3D click point, get corresponding body
         mjtNum selpnt[3];
-        int *dontcare1, *dontcare2;
+        int selgeom, selskin;
         int selgeom = mjv_select(mujoco_model_, mujoco_data_, &opt,
                                  (mjtNum)width/(mjtNum)height,
                                  (mjtNum)lastx/(mjtNum)width,
                                  (mjtNum)(height-lasty)/(mjtNum)height,
-                                 &scn, selpnt, dontcare1, dontcare2);
+                                 &scn, selpnt, &selgeom, &selskin);
         int selbody = (selgeom >=0 ? mujoco_model_->geom_bodyid[selgeom] : 0);
 
         // set lookat point, start tracking is requested
@@ -458,7 +458,7 @@ void MujocoVisualizationUtils::mouse_button_cb_implementation(GLFWwindow* window
             if (selgeom >= 0)
                 mju_copy3(cam.lookat, selpnt);
 
-            // switch to tracking camera
+            // switch to tracking camera if dynamic body clicked
             if (selmode == 3 && selbody)
             {
                 cam.type = mjCAMERA_TRACKING;
@@ -470,17 +470,22 @@ void MujocoVisualizationUtils::mouse_button_cb_implementation(GLFWwindow* window
         // set body selection
         else
         {
-            if (selbody)
+            if ( selbody>=0 )
             {
                 // record selection
                 pert.select = selbody;
+                pert.skinselect = selskin;
+
                 // compute localpos
                 mjtNum tmp[3];
                 mju_sub3(tmp, selpnt, mujoco_data_->xpos+3*pert.select);
                 mju_mulMatTVec(pert.localpos, mujoco_data_->xmat+9*pert.select, tmp, 3, 3);
             }
             else
+            {
                 pert.select = 0;
+                pert.skinselect = -1;
+            }
         }
 
         // stop perturbation on select
